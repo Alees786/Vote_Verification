@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vote Verification — 3 Booths</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --b1: #0f6e56;
+      --b1-light: #e1f5ee;
+      --b1-mid: #1D9E75;
+      --b1-border: #9FE1CB;
+      --b1-text: #04342C;
+      --b2: #c47a0a;
+      --b2-light: #faeeda;
+      --b2-mid: #E5890A;
+      --b2-border: #FAC775;
+      --b2-text: #412402;
+      --b3: #185FA5;
+      --b3-light: #e6f1fb;
+      --b3-mid: #2a78d6;
+      --b3-border: #B5D4F4;
+      --b3-text: #042C53;
+      --bg: #f4f3ef;
+      --surface: #ffffff;
+      --surface2: #f9f8f5;
+      --text: #1a1917;
+      --text-muted: #7a7872;
+      --border: rgba(0,0,0,0.09);
+      --border-strong: rgba(0,0,0,0.14);
+      --radius: 10px;
+      --font: 'Sora', sans-serif;
+      --mono: 'DM Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-strong);
+      padding: 0 2rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .topbar-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--b1-mid);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .topbar-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .topbar-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+    .live-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: #e8fdf0;
+      border: 1px solid #9FE1CB;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #0a6e3a;
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #0a6e3a;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+    .timer-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border-strong);
+      border-radius: 20px;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-track {
+      height: 3px;
+      background: var(--border-strong);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--b1-mid);
+      transition: width 0.5s linear;
+      width: 100%;
+    }
+
+    /* ── MAIN CONTENT ── */
+    .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 3rem; }
+
+    /* ── STAT CARDS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 1.75rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      font-family: var(--mono);
+    }
+    .stat-value.small { font-size: 14px; font-weight: 500; padding-top: 8px; letter-spacing: 0; font-family: var(--font); }
+
+    /* ── BOOTH GRID ── */
+    .booths-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .booth-card {
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+    .booth-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.07); }
+
+    .booth-header {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+    .booth-header.h1 { background: var(--b1-mid); }
+    .booth-header.h2 { background: var(--b2-mid); }
+    .booth-header.h3 { background: var(--b3-mid); }
+
+    .booth-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .booth-name svg { width: 16px; height: 16px; stroke: rgba(255,255,255,0.8); fill: none; stroke-width: 2; }
+    .booth-count-badge {
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--mono);
+      background: rgba(255,255,255,0.22);
+      color: #fff;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    .booth-body { padding: 14px 16px 18px; min-height: 90px; }
+
+    .num-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+
+    .num-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--mono);
+      border: 1px solid;
+      transition: transform 0.15s;
+    }
+    .num-chip:hover { transform: scale(1.08); }
+    .num-chip.c1 { background: var(--b1-light); color: var(--b1-text); border-color: var(--b1-border); }
+    .num-chip.c2 { background: var(--b2-light); color: var(--b2-text); border-color: var(--b2-border); }
+    .num-chip.c3 { background: var(--b3-light); color: var(--b3-text); border-color: var(--b3-border); }
+    .num-chip.new-entry { animation: popin 0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
+    @keyframes popin { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+
+    .empty-msg {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 16px 0 6px;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .footer-status {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .footer-status svg { width: 13px; height: 13px; }
+    .footer-sheet {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    /* ── ERROR STATE ── */
+    .err-banner {
+      display: none;
+      background: #fff5f5;
+      border: 1px solid #fca5a5;
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #b91c1c;
+      margin-bottom: 1rem;
+      gap: 8px;
+      align-items: center;
+    }
+    .err-banner.visible { display: flex; }
+
+    @media (max-width: 500px) {
+      .topbar { padding: 0 1rem; }
+      .main { padding: 1.25rem 1rem 2rem; }
+      .stat-value { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="topbar" role="banner">
+    <div class="topbar-brand">
+      <div class="topbar-icon">
+        <svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
+      <span class="topbar-title">Vote Verification — 3 Booths</span>
+    </div>
+    <div class="topbar-right">
+      <div class="live-pill">
+        <span class="live-dot" aria-hidden="true"></span>
+        Live
+      </div>
+      <div class="timer-pill" id="countdown">↻ 5s</div>
+    </div>
+  </header>
+
+  <!-- PROGRESS -->
+  <div class="progress-track" role="progressbar" aria-label="Time until next refresh">
+    <div class="progress-fill" id="prog"></div>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ERROR BANNER -->
+    <div class="err-banner" id="errBanner" role="alert">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="errMsg">Could not load sheet data. Make sure sharing is set to "Anyone with the link."</span>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row" role="region" aria-label="Summary statistics">
+      <div class="stat-card">
+        <div class="stat-label">Total voters</div>
+        <div class="stat-value" id="statTotal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active booths</div>
+        <div class="stat-value" id="statActive">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Last updated</div>
+        <div class="stat-value small" id="statTime">—</div>
+      </div>
+    </div>
+
+    <!-- BOOTHS -->
+    <div class="booths-grid" role="region" aria-label="Booth data">
+
+      <!-- BOOTH 1 -->
+      <article class="booth-card" aria-label="Booth 1">
+        <div class="booth-header h1">
+          <div class="booth-name">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Booth 1
+          </div>
+          <span class="booth-count-badge" id="cnt1">0</span>
+        </div>
+        <div class="booth-body">
+          <div class="num-grid" id="b1" aria-live="polite"></div>
+        </div>
+      </article>
+
+      <!-- BOOTH 2 -->
+      <article class="booth-card" aria-label="Booth 2">
+        <div class="booth-header h2">
+          <div class="booth-name">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Booth 2
+          </div>
+          <span class="booth-count-badge" id="cnt2">0</span>
+        </div>
+        <div class="booth-body">
+          <div class="num-grid" id="b2" aria-live="polite"></div>
+        </div>
+      </article>
+
+      <!-- BOOTH 3 -->
+      <article class="booth-card" aria-label="Booth 3">
+        <div class="booth-header h3">
+          <div class="booth-name">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Booth 3
+          </div>
+          <span class="booth-count-badge" id="cnt3">0</span>
+        </div>
+        <div class="booth-body">
+          <div class="num-grid" id="b3" aria-live="polite"></div>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="footer-status" id="footerStatus">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Connecting…
+      </div>
+      <div class="footer-sheet">src: Google Sheets · auto-refresh 5s</div>
+    </div>
+
+  </main>
+
+  <script>
+    // ── CONFIG ──────────────────────────────────────────
+    const SHEET_ID = '1J_sjjTl2LNQN_72b3-u9nIVflEd0WYXWNt9MuUheGAo';
+    const TAB_NAME = 'Sheet1';
+    const REFRESH_MS = 5000;
+    // ────────────────────────────────────────────────────
+
+    // Multiple proxy strategies to handle CORS in any environment
+    function getCandidateURLs() {
+      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}`;
+      const sheet = encodeURIComponent(TAB_NAME);
+      const directExport = `${base}/export?format=csv&sheet=${sheet}`;
+      const directGviz   = `${base}/gviz/tq?tqx=out:csv&sheet=${sheet}`;
+      return [
+        // 1. Direct gviz (works if hosted on a real server)
+        directGviz,
+        // 2. Direct export
+        directExport,
+        // 3. allorigins proxy
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(directExport)}`,
+        // 4. corsproxy.io
+        `https://corsproxy.io/?${encodeURIComponent(directExport)}`,
+        // 5. cors-anywhere (public demo)
+        `https://cors-anywhere.herokuapp.com/${directExport}`,
+      ];
+    }
+
+    let prevData = { b1: [], b2: [], b3: [] };
+    let progInterval = null;
+    let lastGoodIndex = 0; // remember which URL succeeded last time
+
+    // Parse CSV — skip header row, handle quoted commas
+    function parseCSV(text) {
+      const rows = [];
+      let cur = '', inQ = false;
+      const fields = () => { rows[rows.length] = cur; cur = ''; };
+      const lines = text.trim().split('\n');
+      // Simple parser good enough for numeric-only cells
+      return lines.slice(1).reduce((acc, line) => {
+        const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+        if (cols[0] && !isNaN(cols[0]) && cols[0] !== '') acc.b1.push(cols[0]);
+        if (cols[1] && !isNaN(cols[1]) && cols[1] !== '') acc.b2.push(cols[1]);
+        if (cols[2] && !isNaN(cols[2]) && cols[2] !== '') acc.b3.push(cols[2]);
+        return acc;
+      }, { b1: [], b2: [], b3: [] });
+    }
+
+    function renderBooth(containerId, countId, nums, colorClass, prev) {
+      const el = document.getElementById(containerId);
+      const prevSet = new Set(prev);
+      if (nums.length === 0) {
+        el.innerHTML = '<span class="empty-msg">No entries yet</span>';
+      } else {
+        el.innerHTML = nums.map(n => {
+          const isNew = !prevSet.has(n);
+          return `<span class="num-chip ${colorClass}${isNew ? ' new-entry' : ''}" title="Voter #${n}">${n}</span>`;
+        }).join('');
+      }
+      document.getElementById(countId).textContent = nums.length;
+    }
+
+    function setStatus(msg, isError = false) {
+      const el = document.getElementById('footerStatus');
+      const icon = isError
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+      el.innerHTML = icon + `<span style="color:${isError ? '#b91c1c' : 'var(--text-muted)'};">${msg}</span>`;
+    }
+
+    // Try each URL in order; use the first one that works
+    async function tryFetch() {
+      const urls = getCandidateURLs();
+      // Start from the last known good index for speed
+      const order = [
+        ...Array.from({length: urls.length}, (_, i) => (lastGoodIndex + i) % urls.length)
+      ];
+      for (const idx of order) {
+        try {
+          const res = await fetch(urls[idx] + (urls[idx].includes('?') ? '&' : '?') + 'cb=' + Date.now(), {
+            cache: 'no-store'
+          });
+          if (!res.ok) continue;
+          const text = await res.text();
+          if (!text || text.trim().length < 2) continue;
+          lastGoodIndex = idx; // remember winner
+          return text;
+        } catch (_) { /* try next */ }
+      }
+      throw new Error('All fetch strategies failed');
+    }
+
+    async function fetchData() {
+      const errBanner = document.getElementById('errBanner');
+      try {
+        const text = await tryFetch();
+        const data = parseCSV(text);
+
+        renderBooth('b1', 'cnt1', data.b1, 'c1', prevData.b1);
+        renderBooth('b2', 'cnt2', data.b2, 'c2', prevData.b2);
+        renderBooth('b3', 'cnt3', data.b3, 'c3', prevData.b3);
+
+        const total = data.b1.length + data.b2.length + data.b3.length;
+        document.getElementById('statTotal').textContent = total;
+        const active = [data.b1, data.b2, data.b3].filter(a => a.length > 0).length;
+        document.getElementById('statActive').textContent = active + ' / 3';
+        const now = new Date();
+        document.getElementById('statTime').textContent =
+          now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        setStatus('Data refreshed successfully');
+        errBanner.classList.remove('visible');
+        prevData = data;
+      } catch (e) {
+        setStatus('Refresh failed — retrying…', true);
+        document.getElementById('errMsg').textContent =
+          'Could not load sheet data. Please open this file using a web server or browser, and ensure the sheet is shared as "Anyone with the link – Viewer".';
+        errBanner.classList.add('visible');
+      }
+    }
+
+    function startCountdown() {
+      const fill = document.getElementById('prog');
+      const cd = document.getElementById('countdown');
+      let elapsed = 0;
+      const step = 200;
+      clearInterval(progInterval);
+      fill.style.width = '100%';
+
+      progInterval = setInterval(() => {
+        elapsed += step;
+        const pct = Math.max(0, 100 - (elapsed / REFRESH_MS) * 100);
+        fill.style.width = pct + '%';
+        const secsLeft = Math.ceil((REFRESH_MS - elapsed) / 1000);
+        cd.textContent = '↻ ' + secsLeft + 's';
+        if (elapsed >= REFRESH_MS) clearInterval(progInterval);
+      }, step);
+    }
+
+    // Kick off
+    fetchData();
+    startCountdown();
+
+    setInterval(() => {
+      fetchData();
+      startCountdown();
+    }, REFRESH_MS);
+  </script>
+
+</body>
+</html>

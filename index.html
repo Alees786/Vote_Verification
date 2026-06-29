@@ -499,7 +499,7 @@
       } catch (e) {
         setStatus('Refresh failed — retrying…', true);
         document.getElementById('errMsg').textContent =
-          'Could not load sheet data. Please open this file using a web server or browser, and ensure the sheet is shared as "Anyone with the link – Viewer".';
+          'Connection Error: No internet connection, or you have been disconnected from the Alees server';
         errBanner.classList.add('visible');
       }
     }
